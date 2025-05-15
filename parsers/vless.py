@@ -38,7 +38,7 @@ def parse(data):
     if netquery.get('security', '') not in ['None', 'none', ''] or netquery.get('tls') == '1':
         node['tls'] = {
             'enabled': True,
-            'insecure': Ture,
+            'insecure': True,
             'server_name': ''
         }
         if netquery.get('allowInsecure') == '1':
