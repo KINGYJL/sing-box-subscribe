@@ -21,7 +21,7 @@ def parse(data):
         'password': _netloc[0],
         'tls': {
             'enabled': True,
-            'insecure': False
+            'insecure': True
         }
     }
     if netquery.get('allowInsecure') == '1':
