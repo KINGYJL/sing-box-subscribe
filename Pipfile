@@ -5,6 +5,12 @@ name = "pypi"
  
 [packages]
 flask = "*"
+requests = "*"
+paramiko = "*"
+scp = "*"
+chardet = "*"
+pyyaml = "*"
+"ruamel.yaml" = "*"
  
 [requires]
 python_version = "3.12"
