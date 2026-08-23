@@ -1,9 +1,5 @@
 import base64,requests,random,string,re,chardet,urllib.parse
-import warnings
-from cryptography.utils import CryptographyDeprecationWarning
-with warnings.catch_warnings(action="ignore", category=CryptographyDeprecationWarning):
-    import paramiko
-from scp import SCPClient
+
 
 def get_encoding(file):
     with open(file,'rb') as f:
@@ -314,6 +310,7 @@ class ConfigSSH:
             if k in server.keys():
                 self.server[k] = server[k]
     def connect(self):
+        import paramiko
         ssh = paramiko.SSHClient()
         ssh.load_system_host_keys()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -325,10 +322,12 @@ class ConfigSSH:
         print(stdout.read().decode('utf-8')) 
 
     def uploadFile(self,source:str,target:str):
+        from scp import SCPClient
         scp = SCPClient(self.ssh.get_transport())
         scp.put(source, recursive=True, remote_path=target)
 
     def getFile(self,remote:str,local:str):
+        from scp import SCPClient
         scp = SCPClient(self.ssh.get_transport())
         scp.get(remote,local)
 
