@@ -1,3 +1,16 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pip install -r requirements.txt",
+  "outputDirectory": ".",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/app"
+    }
+  ],
+  "functions": {
+    "api/app.py": {
+      "runtime": "python3.9"
+    }
+  }
 }
