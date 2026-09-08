@@ -1,7 +1,8 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "pip install -r requirements.txt",
-  "outputDirectory": ".",
+  "env": {
+    "PYTHONUNBUFFERED": "1"
+  },
   "rewrites": [
     {
       "source": "/(.*)",
