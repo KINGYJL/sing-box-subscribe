@@ -96,7 +96,7 @@ def parse(data):
         matcher = re.match(r'(.*?)@(.*):(.*)', param)
         if matcher:
             param = matcher.group(1)
-            node['server'] = matcher.group(2)
+            node['server'] = re.sub(r'\[|\]', '', matcher.group(2)) #[ipv6]:端口
             node['server_port'] = matcher.group(3).split('&')[0]
         else:
             return None

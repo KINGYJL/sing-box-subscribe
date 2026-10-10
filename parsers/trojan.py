@@ -1,8 +1,32 @@
 import tool,re
 from urllib.parse import urlparse, parse_qs, unquote
+
+def protect_userinfo_brackets(uri):
+    """避免 urlparse 把密码中的方括号识别为 IPv6 地址。"""
+    scheme, separator, remainder = uri.partition('://')
+    if not separator:
+        return uri
+
+    match = re.search(r'[/?#]', remainder)
+    end = match.start() if match else len(remainder)
+
+    authority = remainder[:end]
+    suffix = remainder[end:]
+
+    userinfo, at, address = authority.rpartition('@')
+    if not at:
+        return uri
+
+    userinfo = userinfo.replace('[', '%5B').replace(']', '%5D')
+
+    return f'{scheme}{separator}{userinfo}@{address}{suffix}'
+
 def parse(data):
     info = data[:]
-    server_info = urlparse(info)
+    try:
+        server_info = urlparse(protect_userinfo_brackets(info))
+    except ValueError:
+        return None
     if server_info.path:
       server_info = server_info._replace(netloc=server_info.netloc + server_info.path, path="")
     if '@' in server_info.netloc:
@@ -18,7 +42,7 @@ def parse(data):
         'type': 'trojan',
         'server': re.sub(r"\[|\]", "", _netloc[1].rsplit(":", 1)[0]),
         'server_port': int(_netloc[1].rsplit(":", 1)[1].split("/")[0]),
-        'password': _netloc[0],
+        'password': unquote(_netloc[0]),
         'tls': {
             'enabled': True,
             'insecure': False
@@ -43,15 +67,20 @@ def parse(data):
                 'path':netquery.get('path', '/')
             }
         if netquery['type'] == 'ws':
-            matches = re.search(r'\?ed=(\d+)$', netquery.get('path', '/'))
-            if netquery.get('host'):
-                node['transport'] = {
-                     'type':'ws',
-                     'path':netquery.get('path', '/').rsplit("?ed=", 1)[0] if matches else netquery.get('path', '/'),
-                     'headers': {
-                         'Host': netquery.get('host')
-                    }
-                }
+            path = netquery.get('path') or '/'
+            match = re.search(r'\?ed=(\d+)$', path)
+            node['transport'] = {
+                    'type':'ws',
+                    'path': path[:match.start()] if match else path,
+                    'headers': {}
+            }
+            if match:
+                node['transport'].update({
+                    'early_data_header_name': 'Sec-WebSocket-Protocol',
+                    'max_early_data': int(match.group(1))
+                })
+            if host := netquery.get('host'):
+                node['transport']['headers']['Host'] = host
         elif netquery['type'] == 'grpc':
             node['transport'] = {
                 'type':'grpc',

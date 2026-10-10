@@ -1,7 +1,7 @@
 import tool,json,re
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, unquote
 def parse(data):
-    info = data[8:]
+    info = data[8:].rsplit("#", 1)[0]
     if not info or info.isspace():
         return None
     try:
@@ -22,9 +22,11 @@ def parse(data):
                 'server_port': int(_path[1].split(":")[1]),
                 'uuid': _path[0].split(":")[-1],
                 'security': _path[0].split(":")[0] if ':' in _path[0] else 'auto',
-                'alter_id': int(netquery.get('alterId','0')),
-                'packet_encoding': 'xudp'
+                'alter_id': int(netquery.get('alterId','0'))
             }
+            packet_encoding = netquery.get('packetEncoding')
+            if packet_encoding and packet_encoding.lower() != "none":
+                node['packet_encoding'] = packet_encoding
             if (netquery.get('tls') and netquery['tls'] != '') or (netquery.get('security') == 'tls'):
                 node['tls']={
                     'enabled': True,
@@ -68,15 +70,17 @@ def parse(data):
         return None
     content = item.get('ps').strip() if item.get('ps') else tool.genName()+'_vmess'
     node = {
-        'tag': content,
+        'tag': unquote(data[8:].rsplit("#", 1)[1]) if '#' in data else content,
         'type': 'vmess',
         'server': item.get('add'),
         'server_port': int(item.get('port')),
         'uuid': item.get('id'),
         'security': item.get('scy') if item.get('scy') not in ['http', None] else 'auto',
-        'alter_id': int(item["aid"] if item.get("aid") else '0'),
-        'packet_encoding': 'xudp'
+        'alter_id': int(item["aid"] if item.get("aid") else '0')
     }
+    packet_encoding = item.get('packetEncoding')
+    if packet_encoding and packet_encoding.lower() != "none":
+        node['packet_encoding'] = packet_encoding
     if node['security'] == 'gun':
         node['security'] = 'auto'
     if 'tls' in item and (item['tls'] != '' and item['tls'] != 'none'):
@@ -86,6 +90,8 @@ def parse(data):
             'server_name': item.get('host', '') if item.get("net") not in ['h2', 'http'] else ''
         }
         if item.get('verify_cert') == False:
+            node['tls']['insecure'] = False
+        if item.get('insecure') == '0':
             node['tls']['insecure'] = False
         if item.get('sni'):
             node['tls']['server_name'] = item['sni']

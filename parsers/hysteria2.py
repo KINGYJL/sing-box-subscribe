@@ -10,23 +10,27 @@ def parse(data):
     )
     if server_info.path:
       server_info = server_info._replace(netloc=server_info.netloc + server_info.path, path="")
-    ports_match = re.search(r',(\d+-\d+)', server_info.netloc)
+    ports_match = re.search(r',(\d+-\d+)', server_info.netloc) or re.search(r':(\d+-\d+)', server_info.netloc)
     node = {
         'tag': unquote(server_info.fragment) or tool.genName()+'_hysteria2',
         'type': 'hysteria2',
         'server': re.sub(r"\[|\]", "", server_info.netloc.split("@")[-1].rsplit(":", 1)[0]),
         'server_port': int(re.search(r'\d+', server_info.netloc.rsplit(":", 1)[-1].split(",")[0]).group()),
         "password": netquery['auth'] if netquery.get('auth') else server_info.netloc.split("@")[0].rsplit(":", 1)[-1],
-        'up_mbps': int(re.search(r'\d+', netquery.get('upmbps', '10')).group()),
-        'down_mbps': int(re.search(r'\d+', netquery.get('downmbps', '100')).group()),
         'tls': {
             'enabled': True,
             'server_name': netquery.get('sni', netquery.get('peer', '')),
             'insecure': False
         }
     }
+    if netquery.get('upmbps'):
+        node['up_mbps'] = int(re.search(r'\d+', netquery['upmbps']).group())
+    if netquery.get('downmbps'):
+        node['down_mbps'] = int(re.search(r'\d+', netquery['downmbps']).group())
     if ports_match:
         node['server_ports'] = [ports_match.group(1).replace('-', ':')]
+    elif netquery.get('mport'):
+        node['server_ports'] = [netquery['mport'].replace('-', ':')]
     if netquery.get('insecure') in ['1', 'true'] or netquery.get('allowInsecure') == '1':
         node['tls']['insecure'] = True
     if not node['tls'].get('server_name'):
